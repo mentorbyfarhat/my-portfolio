@@ -2618,65 +2618,204 @@
                 revealObserver.observe(el);
             });
 
-            /* ============================================================
-                   CONTACT FORM VALIDATION
-                   ============================================================ */
-            const form = document.getElementById('contactForm');
-            const successMsg = document.getElementById('formSuccess');
+           /* ============================================================
+   CONTACT FORM VALIDATION + JOTFORM SUBMISSION
+   ============================================================ */
 
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
+const form = document.getElementById('contactForm');
+const successMsg = document.getElementById('formSuccess');
 
-                let isValid = true;
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
 
-                form.querySelectorAll('.form-group').forEach(function(group) {
-                    group.classList.remove('error');
-                });
-                successMsg.classList.remove('show');
+    let isValid = true;
 
-                const name = document.getElementById('formName');
-                if (!name.value.trim()) {
-                    name.closest('.form-group').classList.add('error');
-                    isValid = false;
-                }
+    // Remove previous errors
+    form.querySelectorAll('.form-group').forEach(function(group) {
+        group.classList.remove('error');
+    });
 
-                const email = document.getElementById('formEmail');
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!email.value.trim() || !emailPattern.test(email.value.trim())) {
-                    email.closest('.form-group').classList.add('error');
-                    isValid = false;
-                }
+    successMsg.classList.remove('show');
 
-                const message = document.getElementById('formMessage');
-                if (!message.value.trim()) {
-                    message.closest('.form-group').classList.add('error');
-                    isValid = false;
-                }
+    // Get fields
+    const name = document.getElementById('formName');
+    const email = document.getElementById('formEmail');
+    const message = document.getElementById('formMessage');
 
-                if (!isValid) {
-                    const firstError = form.querySelector('.form-group.error');
-                    if (firstError) {
-                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstError.querySelector('input, textarea, select')?.focus();
-                    }
-                    return;
-                }
+    // Validate Name
+    if (!name.value.trim()) {
+        name.closest('.form-group').classList.add('error');
+        isValid = false;
+    }
 
-                const btn = form.querySelector('button[type="submit"]');
-                const originalText = btn.textContent;
-                btn.textContent = 'Sending...';
-                btn.disabled = true;
+    // Validate Email
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-                setTimeout(function() {
-                    successMsg.classList.add('show');
-                    form.reset();
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    setTimeout(function() {
-                        successMsg.classList.remove('show');
-                    }, 6000);
-                }, 1500);
+    if (!email.value.trim() || !emailPattern.test(email.value.trim())) {
+        email.closest('.form-group').classList.add('error');
+        isValid = false;
+    }
+
+    // Validate Message
+    if (!message.value.trim()) {
+        message.closest('.form-group').classList.add('error');
+        isValid = false;
+    }
+
+    // Stop if validation fails
+    if (!isValid) {
+        const firstError = form.querySelector('.form-group.error');
+
+        if (firstError) {
+            firstError.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
             });
+
+            firstError.querySelector(
+                'input, textarea, select'
+            )?.focus();
+        }
+
+        return;
+    }
+
+    // Submit button
+    const btn = form.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+
+    /*
+     * JOTFORM SUBMISSION
+     *
+     * Form ID:
+     * 262282424651051
+     */
+
+    const jotformForm = document.createElement('form');
+
+    jotformForm.method = 'POST';
+    jotformForm.action =
+        'https://submit.jotform.com/submit/262282424651051';
+
+    jotformForm.target = 'jotformHiddenFrame';
+    jotformForm.style.display = 'none';
+
+    // Helper function
+    function addJotformField(name, value) {
+        const input = document.createElement('input');
+
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+
+        jotformForm.appendChild(input);
+    }
+
+    // Full Name
+    const fullName = name.value.trim();
+
+    const nameParts = fullName.split(/\s+/);
+
+    const firstName = nameParts.shift() || '';
+    const lastName = nameParts.join(' ') || '';
+
+    addJotformField('q3_name[first]', firstName);
+    addJotformField('q3_name[last]', lastName);
+
+    // Email
+    addJotformField(
+        'q4_email',
+        email.value.trim()
+    );
+
+    // Organization
+    const organization =
+        document.getElementById('formOrg').value.trim();
+
+    addJotformField(
+        'q5_organization',
+        organization
+    );
+
+    // Purpose of Inquiry
+    const purpose =
+        document.getElementById('formPurpose').value;
+
+    if (purpose) {
+        addJotformField(
+            'q6_purposeOf[]',
+            purpose
+        );
+    }
+
+    // Message
+    addJotformField(
+        'q8_message',
+        message.value.trim()
+    );
+
+    // Required Jotform form ID
+    addJotformField(
+        'formID',
+        '262282424651051'
+    );
+
+    // Anti-spam field
+    addJotformField(
+        'website',
+        ''
+    );
+
+    // Create hidden iframe
+    let iframe = document.getElementById(
+        'jotformHiddenFrame'
+    );
+
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+
+        iframe.id = 'jotformHiddenFrame';
+        iframe.name = 'jotformHiddenFrame';
+
+        iframe.style.display = 'none';
+
+        document.body.appendChild(iframe);
+    }
+
+    // Add form to page
+    document.body.appendChild(jotformForm);
+
+    // Submit to Jotform
+    jotformForm.submit();
+
+    /*
+     * Show success message after submission
+     */
+    setTimeout(function() {
+
+        successMsg.classList.add('show');
+
+        form.reset();
+
+        btn.textContent = originalText;
+        btn.disabled = false;
+
+        setTimeout(function() {
+            successMsg.classList.remove('show');
+        }, 6000);
+
+        // Remove temporary Jotform form
+        if (jotformForm.parentNode) {
+            jotformForm.parentNode.removeChild(
+                jotformForm
+            );
+        }
+
+    }, 1500);
+});
 
             /* ============================================================
                    SMOOTH SCROLL FOR ANCHOR LINKS
